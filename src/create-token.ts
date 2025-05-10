@@ -1,4 +1,4 @@
-import { Keypair, Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
+import { Keypair, Connection, clusterApiUrl } from '@solana/web3.js';
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { Metaplex, keypairIdentity, irysStorage } from '@metaplex-foundation/js';
 import * as fs from 'fs';
@@ -93,9 +93,9 @@ async function createToken() {
     // Add metadata
     await metaplex.nfts().create({
         uri: 'https://arweave.net/your_metadata_hash', // Replace with your metadata URI
-        name: 'YourTokenName',
-        symbol: 'YTN',
-        sellerFeeBasisPoints: 500, // 5% royalty
+        name: 'Juno',
+        symbol: 'JUNO',
+        sellerFeeBasisPoints: 100, // 1% royalty
         tokenOwner: walletKeypair.publicKey,
         isMutable: true,
     });
