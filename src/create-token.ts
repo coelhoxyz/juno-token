@@ -2,15 +2,48 @@ import { Keypair, Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { Metaplex, keypairIdentity, irysStorage } from '@metaplex-foundation/js';
 import * as fs from 'fs';
+import * as path from 'path'; // Import path module
 
 async function createToken() {
     // Connect to Devnet
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
-    // Load wallet (replace with your keypair file path)
-    const walletKeypair = Keypair.fromSecretKey(
-        Uint8Array.from(JSON.parse(fs.readFileSync('~/.config/solana/id.json', 'utf8')))
-    );
+    // Define the path for the wallet file
+    const walletPath = path.join(__dirname, 'wallet.json');
+    let walletKeypair: Keypair;
+
+    // Check if wallet file exists
+    if (fs.existsSync(walletPath)) {
+        // Load wallet from file
+        const secretKey = Uint8Array.from(JSON.parse(fs.readFileSync(walletPath, 'utf8')));
+        walletKeypair = Keypair.fromSecretKey(secretKey);
+        console.log('Loaded wallet from', walletPath);
+    } else {
+        // Generate new wallet and save to file
+        walletKeypair = Keypair.generate();
+        fs.writeFileSync(walletPath, JSON.stringify(Array.from(walletKeypair.secretKey)));
+        console.log('Generated new wallet and saved to', walletPath);
+    }
+
+    // Airdrop SOL to the wallet if needed (e.g., 1 SOL)
+    const lamportsNeeded = 1 * 1000000000; // 1 SOL = 1,000,000,000 lamports
+    const balance = await connection.getBalance(walletKeypair.publicKey);
+    if (balance < lamportsNeeded) {
+        console.log('Airdropping 1 SOL to', walletKeypair.publicKey.toBase58());
+        const airdropSignature = await connection.requestAirdrop(
+            walletKeypair.publicKey,
+            lamportsNeeded
+        );
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({
+            blockhash,
+            lastValidBlockHeight,
+            signature: airdropSignature,
+        });
+        console.log('Airdrop complete. New balance:', await connection.getBalance(walletKeypair.publicKey) / 1000000000, 'SOL');
+    } else {
+        console.log('Wallet has sufficient SOL:', balance / 1000000000, 'SOL');
+    }
 
     // Create a new mint (token)
     const mint = await createMint(
